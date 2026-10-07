@@ -22,7 +22,7 @@ npm install
 npm run dev
 ```
 
-`npm run dev` compiles the WASM crate, then starts Vite.
+`npm run dev` compiles the WASM crate, then starts Vite at http://localhost:5173/stock-delivery-trading-simulator-app/ (the same project-site base path as GitHub Pages).
 
 ## Production build
 
@@ -32,6 +32,16 @@ npm run preview
 ```
 
 `npm run build` runs `wasm-pack` (`--target web`) and then `tsc` and `vite build`. The output in `dist/` is a static site. Open it with any static file server. Backtests do not call a backend.
+
+Vite `base` is `/stock-delivery-trading-simulator-app/`. Sample CSV, policy YAML, and the WASM module are loaded under that prefix.
+
+## GitHub Pages
+
+Pushes to `main` run [`.github/workflows/pages.yml`](.github/workflows/pages.yml): Rust, wasm-pack, `npm ci`, `npm run build`, then `upload-pages-artifact` and `deploy-pages`.
+
+The site is https://abhi1kush.github.io/stock-delivery-trading-simulator-app/
+
+If the first deployment cannot publish, open the repository **Settings → Pages** and set **Source** to **GitHub Actions** once. Later pushes publish on their own.
 
 ## Using it
 
