@@ -47,6 +47,7 @@ export function SetupView({
   return (
     <form
       className="stack"
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
         onSubmit();
@@ -103,7 +104,7 @@ export function SetupView({
               label="Starting capital (₹)"
               value={form.startingCash}
               min="1"
-              step="1000"
+              step="any"
               onChange={(value) => set('startingCash', value)}
             />
             <Field
@@ -171,7 +172,7 @@ export function SetupView({
               label="Stop loss (%)"
               value={form.stopLossPct}
               min="0.1"
-              step="0.1"
+              step="any"
               hint="Initial stop below the entry price."
               onChange={(value) => set('stopLossPct', value)}
             />
@@ -180,7 +181,7 @@ export function SetupView({
               label="Trailing stop (%)"
               value={form.trailingStopPct}
               min="0.1"
-              step="0.1"
+              step="any"
               hint="Distance below the peak high. ATR stops stay off unless YAML sets them."
               onChange={(value) => set('trailingStopPct', value)}
             />

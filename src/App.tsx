@@ -64,7 +64,7 @@ export function App() {
     setLoadingSample(true);
     setError(null);
     try {
-      const response = await fetch('/data/CUPID.csv');
+      const response = await fetch(`${import.meta.env.BASE_URL}data/CUPID.csv`);
       if (!response.ok) throw new Error(`Could not load the CUPID sample (${response.status}).`);
       acceptCsv(await response.text(), 'CUPID.csv');
     } catch (err) {
@@ -84,7 +84,7 @@ export function App() {
   async function loadExampleYaml() {
     setError(null);
     try {
-      const response = await fetch('/policy/example_policy.yaml');
+      const response = await fetch(`${import.meta.env.BASE_URL}policy/example_policy.yaml`);
       if (!response.ok) throw new Error('Could not load the example policy.');
       setYaml(await response.text());
     } catch (err) {
