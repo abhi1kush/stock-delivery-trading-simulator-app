@@ -1,0 +1,44 @@
+# Best policy + long-term SMA(100) trend filter (skip buys when close <= SMA100).
+# Base: best_policy.yaml (fine-tune re-benchmark; replaced=False).
+# Source candidate: policy/candidates/17_pct_stops_trend.yaml — see output/best/BENCHMARK.md
+# CORE_OLD=TATASTEEL,ADANIENT,IRCTC,PAYTM,IDEA CORE_NEW=YESBANK,SUZLON,BHEL,IRFC,SAIL,PNB REPORT=CUPID
+#
+# EMA trend with fixed % stop/trail (8%/10%) instead of ATR
+capital:
+  starting_cash: 100000.0
+  position_sizing: fraction
+  fraction: 0.95
+  fixed_shares: 100
+  fixed_amount: 10000.0
+risk:
+  stop_loss_pct: 8
+  take_profit_pct: null
+  atr_stop_mult: null
+  trailing_stop_pct: 10
+  trailing_atr_mult: null
+  allow_short: false
+indicators:
+  sma_fast: null
+  sma_slow: null
+  sma_trend: 100          # long-term SMA; used with require_price_above_sma_trend
+  ema_fast: 12
+  ema_slow: 26
+  rsi_period: 14
+  rsi_oversold: 30
+  rsi_overbought: 70
+  atr_period: 14
+  adx_period: 14
+  adx_min: 20.0
+signals:
+  buy_on_sma_cross_up: false
+  sell_on_sma_cross_down: false
+  buy_on_ema_cross_up: true
+  sell_on_ema_cross_down: false
+  buy_on_rsi_oversold_exit: false
+  sell_on_rsi_overbought_exit: false
+  require_rsi_not_overbought: true
+  require_adx_trend: false
+  buy_on_adx_confirm: true
+  require_price_above_sma_trend: true  # only buy when close > SMA(sma_trend)
+execution:
+  fill_at: next_open
