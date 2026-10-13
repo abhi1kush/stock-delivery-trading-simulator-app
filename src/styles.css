@@ -451,3 +451,34 @@ footer { margin-top: 22px; color: var(--muted); font-size: 0.85rem; }
 .field select { font: inherit; padding: 0.55rem 0.6rem; border-radius: 8px; border: 1px solid currentColor; background: transparent; color: inherit; }
 .card > label.field { margin-bottom: 0.9rem; }
 .source-note { font-size: 0.8rem; opacity: 0.85; }
+
+/* ---- Mobile fit (root causes: grid items default to min-width:auto, and the
+   sample <select> sizes itself to its longest option, which pushed the setup
+   card to ~690px on phones; the trades table's min-width did the same to the
+   report at landscape widths). ---- */
+.stack > *, .card, .fields > *, .field, .pattern-row, fieldset, .charts > *, .kpis > * { min-width: 0; }
+.field select, select {
+  width: 100%;
+  max-width: 100%;
+  min-height: 46px;
+  font-size: 16px;
+  border-radius: 12px;
+  border: 1px solid #d9d0c2;
+  background: #fff;
+  padding: 10px 12px;
+  text-overflow: ellipsis;
+}
+input[type="number"], textarea, select { font-size: 16px; }
+textarea { font-size: 16px; }
+.table-wrap { max-width: 100%; -webkit-overflow-scrolling: touch; }
+.check { min-height: 44px; cursor: pointer; }
+.check input { width: 22px; height: 22px; flex: 0 0 auto; }
+.chips li { max-width: 100%; overflow-wrap: anywhere; }
+.trade-card header { flex-wrap: wrap; }
+.field small, .hint, .file-status span, .buy-explain p { overflow-wrap: anywhere; }
+img, svg, canvas { max-width: 100%; }
+.recharts-wrapper, .recharts-surface { max-width: 100%; }
+@media (max-width: 719px) {
+  .top { flex-wrap: wrap; }
+  .actions .btn { flex: 1 1 140px; text-align: center; }
+}

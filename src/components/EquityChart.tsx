@@ -29,14 +29,14 @@ export function EquityChart({ data }: { data: EquityPoint[] }) {
               dataKey="date"
               tickFormatter={shortDate}
               minTickGap={28}
-              tick={{ fill: '#6d655c', fontSize: 11 }}
+              tick={{ fill: '#6d655c', fontSize: 12 }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               tickFormatter={axisInr}
               width={72}
-              tick={{ fill: '#6d655c', fontSize: 11 }}
+              tick={{ fill: '#6d655c', fontSize: 12 }}
               axisLine={false}
               tickLine={false}
               domain={['auto', 'auto']}

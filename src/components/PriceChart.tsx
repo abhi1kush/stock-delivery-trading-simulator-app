@@ -29,14 +29,14 @@ export function PriceChart({ data }: { data: PriceRow[] }) {
               dataKey="date"
               tickFormatter={shortDate}
               minTickGap={28}
-              tick={{ fill: '#6d655c', fontSize: 11 }}
+              tick={{ fill: '#6d655c', fontSize: 12 }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               tickFormatter={(value: number) => inr(value, 0)}
               width={64}
-              tick={{ fill: '#6d655c', fontSize: 11 }}
+              tick={{ fill: '#6d655c', fontSize: 12 }}
               axisLine={false}
               tickLine={false}
               domain={['auto', 'auto']}
