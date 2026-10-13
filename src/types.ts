@@ -12,6 +12,12 @@ export type PolicyForm = {
   /** '1D' | '1W' | '1M' | 'ND' (custom multiple of a day, see candleDays). */
   candlePeriod: CandleChoice;
   candleDays: string;
+  rsiPeriod: string;
+  adxPeriod: string;
+  atrPeriod: string;
+  downtrendLookback: string;
+  /** Daily-equivalent lengths: the source of truth for every candle-count field. */
+  daily: import('./lengths').DailyLengths;
   hammer: boolean;
   threeWhiteSoldiers: boolean;
   bullishEngulfing: boolean;

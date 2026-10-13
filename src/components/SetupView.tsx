@@ -1,6 +1,7 @@
 import type { CandleChoice, PolicyForm, CsvMeta } from '../types';
 import { isDailyGranularity } from '../csv';
-import { MAX_CANDLE_DAYS } from '../policy';
+import { MAX_CANDLE_DAYS, formFactor, withCandlePeriod, withLength } from '../policy';
+import { scaleLengths, warmupWarning, type LengthKey } from '../lengths';
 import { SAMPLES, SAMPLE_SOURCE_NOTE } from '../samples';
 import { longDate } from '../format';
 
@@ -47,6 +48,24 @@ export function SetupView({
 }: Props) {
   const yamlActive = yaml.trim().length > 0;
   const daily = isDailyGranularity(csvMeta?.medianGapDays ?? null);
+  const factor = formFactor(form);
+  const warmup = csvMeta ? warmupWarning(csvMeta.rows, factor, scaleLengths(form.daily, factor)) : null;
+
+  function lenField(id: string, k: LengthKey, label: string) {
+    return (
+      <Field
+        id={id}
+        label={label}
+        value={form[k]}
+        min="1"
+        step="1"
+        hint={factor === 1 ? undefined : `≈${form.daily[k]} trading days`}
+        key={id}
+        onChange={(value) => onChange(withLength(form, k, value))}
+      />
+    );
+  }
+
 
   function set<K extends keyof PolicyForm>(key: K, value: PolicyForm[K]) {
     onChange({ ...form, [key]: value });
@@ -117,6 +136,48 @@ export function SetupView({
         </div>
 
         <fieldset>
+          <legend>Candles</legend>
+          <div className="fields">
+            <label className="field" htmlFor="candle-period">
+              <span>Candle period</span>
+              <select
+                id="candle-period"
+                value={form.candlePeriod}
+                onChange={(event) => onChange(withCandlePeriod(form, event.target.value as CandleChoice))}
+              >
+                <option value="1D">1 day (input rows)</option>
+                <option value="ND" disabled={!daily}>N trading days</option>
+                <option value="1W" disabled={!daily}>1 week (calendar)</option>
+                <option value="1M" disabled={!daily}>1 month (calendar)</option>
+              </select>
+              <small>
+                {daily
+                  ? 'Daily rows are grouped into candles first: open = first, high = max, low = min, close = last, volume = sum. Indicators, signals and patterns use the grouped candles.'
+                  : `These prices are about ${csvMeta?.medianGapDays} days apart, so only the input period is available.`}
+              </small>
+            </label>
+            {form.candlePeriod === 'ND' ? (
+              <Field
+                id="candle-days"
+                label="Trading days per candle"
+                value={form.candleDays}
+                min="1"
+                max={String(MAX_CANDLE_DAYS)}
+                step="1"
+                hint={`Whole number, 1 to ${MAX_CANDLE_DAYS}.`}
+                onChange={(value) => onChange(withCandlePeriod(form, 'ND', value))}
+              />
+            ) : null}
+          </div>
+          {factor !== 1 ? (
+            <p className="hint scale-note">
+              Candle-count lengths (EMA, SMA, RSI, ADX, downtrend lookback) were rescaled from their daily values at ≈{factor} trading days per candle. Stop and trail percentages are unchanged.
+            </p>
+          ) : null}
+          {warmup ? <p className="banner warmup">{warmup}</p> : null}
+        </fieldset>
+
+        <fieldset>
           <legend>Capital</legend>
           <div className="fields">
             <Field
@@ -143,8 +204,8 @@ export function SetupView({
         <fieldset>
           <legend>Entry</legend>
           <div className="fields">
-            <Field id="ema-fast" label="EMA fast" value={form.emaFast} min="1" step="1" onChange={(value) => set('emaFast', value)} />
-            <Field id="ema-slow" label="EMA slow" value={form.emaSlow} min="2" step="1" onChange={(value) => set('emaSlow', value)} />
+            {lenField('ema-fast', 'emaFast', 'EMA fast')}
+            {lenField('ema-slow', 'emaSlow', 'EMA slow')}
             <Field
               id="adx-min"
               label="ADX threshold"
@@ -164,14 +225,9 @@ export function SetupView({
               hint="Skip buys when RSI is at or above this."
               onChange={(value) => set('rsiMax', value)}
             />
-            <Field
-              id="sma-trend"
-              label="SMA trend length"
-              value={form.smaTrend}
-              min="1"
-              step="1"
-              onChange={(value) => set('smaTrend', value)}
-            />
+            {lenField('sma-trend', 'smaTrend', 'SMA trend length')}
+            {lenField('rsi-period', 'rsiPeriod', 'RSI length')}
+            {lenField('adx-period', 'adxPeriod', 'ADX length')}
             <label className="check" htmlFor="sma-filter">
               <input
                 id="sma-filter"
@@ -184,41 +240,7 @@ export function SetupView({
           </div>
         </fieldset>
 
-        <fieldset>
-          <legend>Candles</legend>
-          <div className="fields">
-            <label className="field" htmlFor="candle-period">
-              <span>Candle period</span>
-              <select
-                id="candle-period"
-                value={form.candlePeriod}
-                onChange={(event) => set('candlePeriod', event.target.value as CandleChoice)}
-              >
-                <option value="1D">1 day (input rows)</option>
-                <option value="ND" disabled={!daily}>N trading days</option>
-                <option value="1W" disabled={!daily}>1 week (calendar)</option>
-                <option value="1M" disabled={!daily}>1 month (calendar)</option>
-              </select>
-              <small>
-                {daily
-                  ? 'Daily rows are grouped into candles first: open = first, high = max, low = min, close = last, volume = sum. Indicators, signals and patterns use the grouped candles.'
-                  : `These prices are about ${csvMeta?.medianGapDays} days apart, so only the input period is available.`}
-              </small>
-            </label>
-            {form.candlePeriod === 'ND' ? (
-              <Field
-                id="candle-days"
-                label="Trading days per candle"
-                value={form.candleDays}
-                min="1"
-                max={String(MAX_CANDLE_DAYS)}
-                step="1"
-                hint={`Whole number, 1 to ${MAX_CANDLE_DAYS}.`}
-                onChange={(value) => set('candleDays', value)}
-              />
-            ) : null}
-          </div>
-        </fieldset>
+        
 
         <fieldset>
           <legend>Candlestick patterns &amp; buy score</legend>
@@ -271,6 +293,7 @@ export function SetupView({
               hint="Arm a buy when the score is at least this."
               onChange={(value) => set('buyThreshold', value)}
             />
+            {lenField('downtrend-lookback', 'downtrendLookback', 'Downtrend lookback (candles)')}
           </div>
         </fieldset>
 

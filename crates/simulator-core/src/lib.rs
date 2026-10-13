@@ -101,8 +101,11 @@ pub struct TradeOut {
 pub fn execute(prices_csv: &str, policy_text: &str) -> Result<RunOutput> {
     let bars = load_prices_csv(prices_csv)?;
     let input_rows = bars.len();
-    let policy = parse_policy_text(policy_text)?;
+    let mut policy = parse_policy_text(policy_text)?;
     let period = candles::parse_period(&policy.candles.period)?;
+    if policy.candles.scale_lengths {
+        candles::scale_policy_lengths(&mut policy, period);
+    }
     let bars = candles::apply_period(bars, period)?;
     let result = run_backtest(bars, &policy);
     let mut out = assemble(&result, &policy);

@@ -40,6 +40,56 @@ impl CandlePeriod {
     }
 }
 
+impl CandlePeriod {
+    /// Approximate trading days per candle: ND = N, 1W = 5, 1M = 21.
+    pub fn trading_days(&self) -> usize {
+        match self {
+            CandlePeriod::Days(n) => *n,
+            CandlePeriod::Week => 5,
+            CandlePeriod::Month => 21,
+        }
+    }
+}
+
+fn scale_one(days: usize, factor: usize, min: usize) -> usize {
+    if factor == 1 {
+        return days;
+    }
+    let v = (days as f64 / factor as f64).round() as usize;
+    v.max(min)
+}
+
+fn scale_pair(fast: Option<usize>, slow: Option<usize>, factor: usize) -> (Option<usize>, Option<usize>) {
+    match (fast, slow) {
+        (Some(f), Some(s)) if factor > 1 => {
+            let f2 = scale_one(f, factor, 2);
+            let s2 = scale_one(s, factor, 4).max(f2 + 2);
+            (Some(f2), Some(s2))
+        }
+        other => other,
+    }
+}
+
+/// Rescale every candle-count length from trading days to candles of `period`
+/// (same rules as the web form's `scaleLengths`).
+pub fn scale_policy_lengths(p: &mut crate::policy::Policy, period: CandlePeriod) {
+    let f = period.trading_days();
+    if f == 1 {
+        return;
+    }
+    let ind = &mut p.indicators;
+    (ind.ema_fast, ind.ema_slow) = scale_pair(ind.ema_fast, ind.ema_slow, f);
+    (ind.sma_fast, ind.sma_slow) = scale_pair(ind.sma_fast, ind.sma_slow, f);
+    ind.sma_trend = ind.sma_trend.map(|v| scale_one(v, f, 2));
+    // RSI shorter than ~5 candles is dominated by the last one or two moves and
+    // sits above 70 on almost any up-candle, so the overbought cap would block
+    // nearly every buy. Keep it at 5 or more.
+    ind.rsi_period = ind.rsi_period.map(|v| scale_one(v, f, 5));
+    ind.atr_period = ind.atr_period.map(|v| scale_one(v, f, 2));
+    ind.adx_period = ind.adx_period.map(|v| scale_one(v, f, 2));
+    p.patterns.downtrend_lookback = scale_one(p.patterns.downtrend_lookback, f, 2);
+}
+
 /// Parse `1D`, `5D`, `1W`, `1M` (case-insensitive, whitespace ignored).
 pub fn parse_period(text: &str) -> Result<CandlePeriod> {
     let t: String = text.chars().filter(|c| !c.is_whitespace()).collect::<String>().to_ascii_uppercase();
@@ -158,6 +208,22 @@ mod tests {
             bar("2024-03-11", 10.5, 14.0, 10.0, 13.0, 600.0),
             bar("2024-03-12", 13.0, 13.5, 12.0, 12.5, 700.0),
         ]
+    }
+
+    #[test]
+    fn scales_lengths_like_the_form() {
+        let mut p = crate::policy::parse_policy_text("indicators:\n  sma_trend: 100\n").unwrap();
+        scale_policy_lengths(&mut p, CandlePeriod::Week);
+        let i = &p.indicators;
+        assert_eq!((i.ema_fast, i.ema_slow, i.sma_trend, i.rsi_period, i.adx_period, i.atr_period), (Some(2), Some(5), Some(20), Some(5), Some(3), Some(3)));
+        assert_eq!(p.patterns.downtrend_lookback, 2);
+        let mut m = crate::policy::parse_policy_text("indicators:\n  sma_trend: 100\n").unwrap();
+        scale_policy_lengths(&mut m, CandlePeriod::Month);
+        let i = &m.indicators;
+        assert_eq!((i.ema_fast, i.ema_slow, i.sma_trend, i.rsi_period, i.adx_period), (Some(2), Some(4), Some(5), Some(5), Some(2)));
+        let mut d = crate::policy::parse_policy_text("indicators:\n  sma_trend: 100\n").unwrap();
+        scale_policy_lengths(&mut d, CandlePeriod::Days(1));
+        assert_eq!(d.indicators.sma_trend, Some(100));
     }
 
     #[test]

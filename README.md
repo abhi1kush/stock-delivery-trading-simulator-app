@@ -78,6 +78,33 @@ The input CSV is daily. The **Candle period** control groups rows into longer ca
 
 A candle is dated by its last session (when its close is known), and a buy fills at the next candle's open. Indicator lengths count candles, so SMA 100 on weekly candles needs 100 weeks of data; turn the SMA filter off or shorten it for long periods. If the input rows are more than 4 days apart (already weekly or coarser) only the input period is allowed. YAML: `candles: { period: 1W }` (`1D`, `5D`, `1W`, `1M`).
 
+### Lengths follow the candle period
+
+Indicator lengths count candles, so SMA 100 on weekly candles would mean 100 weeks. When you change the candle period, the form rescales every candle-count field from its **daily** value: EMA fast/slow, SMA trend, RSI length, ADX length (and ATR length, used only by YAML ATR stops), and the pattern downtrend lookback.
+
+```
+candles = max(min, round(daily / trading days per candle))     1D = 1, N days = N, 1W ≈ 5, 1M ≈ 21
+```
+
+Minimums: 2 for every length, 5 for RSI (a shorter RSI is driven by the last one or two candles and sits above 70 after almost any up-candle, which would make the RSI cap block nearly every buy), and EMA slow ≥ fast + 2. Daily values are the source of truth, so switching periods back and forth never drifts; typing a length stores it back as its daily equivalent (weekly 30 → 150 days). Each scaled field shows a hint such as "≈100 trading days". Stop-loss and trailing percentages are prices and are not scaled. A banner warns when the data has too few candles for the longest indicator's warm-up (max of SMA, EMA slow, 2 × ADX, RSI + 1).
+
+Default lengths by period: 1D 12/26 EMA, SMA 100, RSI 14, ADX 14, lookback 5 · 1W 2/5, SMA 20, RSI 5, ADX 3, lookback 2 · 1M 2/4, SMA 5, RSI 5, ADX 2, lookback 2.
+
+In YAML, lengths are taken as candles unless you add `candles: { period: 1W, scale_lengths: true }`, which makes the engine treat them as trading days and apply the same rules.
+
+Default policy, by period (trades, return):
+
+| Sample | 1D | 1W | 1M |
+| --- | --- | --- | --- |
+| CUPID | 3, +40.81% | 1, +22.20% | 0 |
+| PAYTM | 2, −11.95% | 1, +6.14% | 0 |
+| SUZLON | 4, +6.41% | 4, +42.68% | 2, −19.49% |
+| TRENT | 3, +42.05% | 0 | 0 |
+| ADANIENT | 1, −1.26% | 2, −9.37% | 2, +5.66% |
+| HINDUNILVR | 3, −14.60% | 1, −4.61% | 2, −8.20% |
+
+Zeros: Trent's only weekly EMA crossover (week ending 2023-10-27) has RSI 73, above the 70 cap; it was trending the whole time, so there is no other cross. On monthly candles CUPID and PAYTM have 13 candles and Trent 18, fewer than the warm-up plus a cross, so nothing triggers; the form warns about this.
+
 ### Candlestick patterns and the buy score
 
 Patterns are weighted evidence, not hard triggers. On each candle the engine computes a deterministic buy score:
