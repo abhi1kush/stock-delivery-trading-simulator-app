@@ -13,6 +13,85 @@ pub struct Policy {
     pub signals: Signals,
     #[serde(default)]
     pub execution: Execution,
+    #[serde(default)]
+    pub candles: Candles,
+    #[serde(default)]
+    pub patterns: Patterns,
+}
+
+/// Candle period applied to the (daily) input before anything else.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Candles {
+    /// `1D` (default), `ND` (N = 1..=60 trading sessions), `1W`, `1M`.
+    #[serde(default = "default_period")]
+    pub period: String,
+}
+fn default_period() -> String {
+    "1D".into()
+}
+impl Default for Candles {
+    fn default() -> Self {
+        Self { period: default_period() }
+    }
+}
+
+/// Candlestick patterns and the weighted buy score.
+///
+/// Buy score on candle i = signal_weight (if any enabled indicator buy signal
+/// fired) + Σ enabled pattern weight × strength. A buy is armed when the score
+/// is >= buy_score_threshold and the filters (RSI cap, ADX trend, SMA trend)
+/// pass. With the defaults (patterns off, signal_weight 1, threshold 0.5) this
+/// is exactly the original signal policy.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Patterns {
+    #[serde(default)]
+    pub hammer: bool,
+    #[serde(default)]
+    pub three_white_soldiers: bool,
+    #[serde(default)]
+    pub bullish_engulfing: bool,
+    #[serde(default)]
+    pub doji: bool,
+    #[serde(default = "w_hammer")]
+    pub hammer_weight: f64,
+    #[serde(default = "w_tws")]
+    pub three_white_soldiers_weight: f64,
+    #[serde(default = "w_engulf")]
+    pub bullish_engulfing_weight: f64,
+    #[serde(default = "w_doji")]
+    pub doji_weight: f64,
+    /// Contribution of the indicator signals (EMA/SMA cross, ADX confirm, RSI exit).
+    #[serde(default = "w_signal")]
+    pub signal_weight: f64,
+    #[serde(default = "w_threshold")]
+    pub buy_score_threshold: f64,
+    /// Candles used for the "after a downtrend" check (hammer, doji).
+    #[serde(default = "w_lookback")]
+    pub downtrend_lookback: usize,
+}
+fn w_hammer() -> f64 { 0.6 }
+fn w_tws() -> f64 { 0.8 }
+fn w_engulf() -> f64 { 0.7 }
+fn w_doji() -> f64 { 0.3 }
+fn w_signal() -> f64 { 1.0 }
+fn w_threshold() -> f64 { 0.5 }
+fn w_lookback() -> usize { 5 }
+impl Default for Patterns {
+    fn default() -> Self {
+        Self {
+            hammer: false,
+            three_white_soldiers: false,
+            bullish_engulfing: false,
+            doji: false,
+            hammer_weight: w_hammer(),
+            three_white_soldiers_weight: w_tws(),
+            bullish_engulfing_weight: w_engulf(),
+            doji_weight: w_doji(),
+            signal_weight: w_signal(),
+            buy_score_threshold: w_threshold(),
+            downtrend_lookback: w_lookback(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -311,6 +390,29 @@ fn validate(p: &Policy) -> Result<()> {
                 "sma_trend must be > 0 when set".into(),
             ));
         }
+    }
+    crate::candles::parse_period(&p.candles.period)?;
+    let pt = &p.patterns;
+    for (name, w) in [
+        ("hammer_weight", pt.hammer_weight),
+        ("three_white_soldiers_weight", pt.three_white_soldiers_weight),
+        ("bullish_engulfing_weight", pt.bullish_engulfing_weight),
+        ("doji_weight", pt.doji_weight),
+        ("signal_weight", pt.signal_weight),
+    ] {
+        if !(0.0..=1.0).contains(&w) {
+            return Err(SimError::Validation(format!("patterns.{name} must be between 0 and 1")));
+        }
+    }
+    if !(pt.buy_score_threshold > 0.0 && pt.buy_score_threshold <= 5.0) {
+        return Err(SimError::Validation(
+            "patterns.buy_score_threshold must be > 0 and <= 5".into(),
+        ));
+    }
+    if pt.downtrend_lookback < 1 || pt.downtrend_lookback > 50 {
+        return Err(SimError::Validation(
+            "patterns.downtrend_lookback must be between 1 and 50".into(),
+        ));
     }
     if p.signals.require_price_above_sma_trend && p.indicators.sma_trend.is_none() {
         return Err(SimError::Validation(

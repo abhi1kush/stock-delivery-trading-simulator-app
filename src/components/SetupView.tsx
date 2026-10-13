@@ -1,4 +1,6 @@
-import type { PolicyForm, CsvMeta } from '../types';
+import type { CandleChoice, PolicyForm, CsvMeta } from '../types';
+import { isDailyGranularity } from '../csv';
+import { MAX_CANDLE_DAYS } from '../policy';
 import { longDate } from '../format';
 
 type EngineState = 'loading' | 'ready' | 'error';
@@ -39,6 +41,7 @@ export function SetupView({
   onShowReport,
 }: Props) {
   const yamlActive = yaml.trim().length > 0;
+  const daily = isDailyGranularity(csvMeta?.medianGapDays ?? null);
 
   function set<K extends keyof PolicyForm>(key: K, value: PolicyForm[K]) {
     onChange({ ...form, [key]: value });
@@ -165,6 +168,96 @@ export function SetupView({
         </fieldset>
 
         <fieldset>
+          <legend>Candles</legend>
+          <div className="fields">
+            <label className="field" htmlFor="candle-period">
+              <span>Candle period</span>
+              <select
+                id="candle-period"
+                value={form.candlePeriod}
+                onChange={(event) => set('candlePeriod', event.target.value as CandleChoice)}
+              >
+                <option value="1D">1 day (input rows)</option>
+                <option value="ND" disabled={!daily}>N trading days</option>
+                <option value="1W" disabled={!daily}>1 week (calendar)</option>
+                <option value="1M" disabled={!daily}>1 month (calendar)</option>
+              </select>
+              <small>
+                {daily
+                  ? 'Daily rows are grouped into candles first: open = first, high = max, low = min, close = last, volume = sum. Indicators, signals and patterns use the grouped candles.'
+                  : `These prices are about ${csvMeta?.medianGapDays} days apart, so only the input period is available.`}
+              </small>
+            </label>
+            {form.candlePeriod === 'ND' ? (
+              <Field
+                id="candle-days"
+                label="Trading days per candle"
+                value={form.candleDays}
+                min="1"
+                max={String(MAX_CANDLE_DAYS)}
+                step="1"
+                hint={`Whole number, 1 to ${MAX_CANDLE_DAYS}.`}
+                onChange={(value) => set('candleDays', value)}
+              />
+            ) : null}
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Candlestick patterns &amp; buy score</legend>
+          <p className="hint">
+            Buy score = signal weight (when an EMA/ADX entry signal fires) + each detected pattern&apos;s weight ×
+            strength (0.5–1, how cleanly the candle fits). Buy when the score reaches the threshold and the RSI / SMA
+            filters pass. With patterns off this is the original policy.
+          </p>
+          <div className="fields">
+            {PATTERNS.map(([flag, weight, label, hint]) => (
+              <div className="pattern-row" key={flag}>
+                <label className="check" htmlFor={`pat-${flag}`}>
+                  <input
+                    id={`pat-${flag}`}
+                    type="checkbox"
+                    checked={form[flag]}
+                    onChange={(event) => set(flag, event.target.checked)}
+                  />
+                  <span>{label}</span>
+                </label>
+                <Field
+                  id={`w-${flag}`}
+                  label={`${label} weight`}
+                  value={form[weight]}
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  hint={hint}
+                  onChange={(value) => set(weight, value)}
+                />
+              </div>
+            ))}
+            <Field
+              id="signal-weight"
+              label="Signal weight"
+              value={form.signalWeight}
+              min="0"
+              max="1"
+              step="0.05"
+              hint="Score added when the EMA cross or ADX confirm fires."
+              onChange={(value) => set('signalWeight', value)}
+            />
+            <Field
+              id="buy-threshold"
+              label="Buy score threshold"
+              value={form.buyThreshold}
+              min="0.05"
+              max="5"
+              step="0.05"
+              hint="Arm a buy when the score is at least this."
+              onChange={(value) => set('buyThreshold', value)}
+            />
+          </div>
+        </fieldset>
+
+        <fieldset>
           <legend>Risk</legend>
           <div className="fields">
             <Field
@@ -235,6 +328,16 @@ export function SetupView({
     </form>
   );
 }
+
+type BoolKey = 'hammer' | 'threeWhiteSoldiers' | 'bullishEngulfing' | 'doji';
+type WeightKey = 'hammerWeight' | 'threeWhiteSoldiersWeight' | 'bullishEngulfingWeight' | 'dojiWeight';
+
+const PATTERNS: [BoolKey, WeightKey, string, string][] = [
+  ['hammer', 'hammerWeight', 'Hammer', 'Small body near the top, lower shadow ≥ 2× body, after a 5-candle decline.'],
+  ['threeWhiteSoldiers', 'threeWhiteSoldiersWeight', 'Three white soldiers', '3 rising bullish candles, each opening inside the prior body, small upper wicks.'],
+  ['bullishEngulfing', 'bullishEngulfingWeight', 'Bullish engulfing', 'Bullish body engulfs the prior bearish body.'],
+  ['doji', 'dojiWeight', 'Doji', 'Body ≤ 10% of range. Indecision, so only counted after a 5-candle decline.'],
+];
 
 function Field({
   id,

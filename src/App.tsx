@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { SetupView } from './components/SetupView';
 import { ReportView } from './components/ReportView';
 import { summarizeCsv } from './csv';
-import { buildPolicyJson, defaultPolicyForm, validateForm } from './policy';
+import { buildPolicyJson, defaultPolicyForm, validateCandlePeriod, validateForm } from './policy';
 import type { BacktestResult, CsvMeta, PolicyForm } from './types';
 import { errorText, preloadEngine, runBacktest } from './wasm/engine';
 
@@ -99,7 +99,7 @@ export function App() {
     }
     const yamlOn = yaml.trim().length > 0;
     if (!yamlOn) {
-      const problem = validateForm(form);
+      const problem = validateForm(form) ?? validateCandlePeriod(form, csvMeta.medianGapDays);
       if (problem) {
         setError(problem);
         return;

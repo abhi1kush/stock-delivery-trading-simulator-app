@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { EquityChart } from './EquityChart';
 import { PriceChart } from './PriceChart';
 import { inr, longDate, reasonLabel, shares, signedInr, signedPct, tone, trimNum } from '../format';
@@ -22,7 +23,7 @@ export function ReportView({ result, sourceName, onBack }: Props) {
         <div>
           <p className="eyebrow">{sourceName}</p>
           <h2 className="report-title">
-            {stats.num_bars} bars · {longDate(stats.first_date)} – {longDate(stats.last_date)}
+            {stats.num_bars} {policy.candle_period} candles{policy.input_rows && policy.input_rows !== stats.num_bars ? ` from ${policy.input_rows} rows` : ''} · {longDate(stats.first_date)} – {longDate(stats.last_date)}
           </h2>
         </div>
       </div>
@@ -70,7 +71,7 @@ export function ReportView({ result, sourceName, onBack }: Props) {
                   <tr>
                     <th scope="col">Entry</th>
                     <th scope="col">Exit</th>
-                    <th scope="col">Reason</th>
+                    <th scope="col">Exit reason</th>
                     <th scope="col">Shares</th>
                     <th scope="col">Entry price</th>
                     <th scope="col">Exit price</th>
@@ -81,7 +82,8 @@ export function ReportView({ result, sourceName, onBack }: Props) {
                 </thead>
                 <tbody>
                   {trades.map((trade) => (
-                    <tr key={`${trade.entry_date}-${trade.exit_date}-${trade.shares}`}>
+                    <Fragment key={`${trade.entry_date}-${trade.exit_date}-${trade.shares}`}>
+                    <tr>
                       <td>{longDate(trade.entry_date)}</td>
                       <td>{longDate(trade.exit_date)}</td>
                       <td>{reasonLabel(trade.exit_reason)}</td>
@@ -92,6 +94,12 @@ export function ReportView({ result, sourceName, onBack }: Props) {
                       <td className={tone(trade.return_pct)}>{signedPct(trade.return_pct)}</td>
                       <td className={tone(trade.pnl)}>{signedInr(trade.pnl)}</td>
                     </tr>
+                    <tr className="explain-row">
+                      <td colSpan={9}>
+                        <BuyExplanation trade={trade} />
+                      </td>
+                    </tr>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -123,6 +131,7 @@ function TradeCard({ trade }: { trade: Trade }) {
       <p className="dates">
         {longDate(trade.entry_date)} → {longDate(trade.exit_date)} · {trade.hold_days} days
       </p>
+      <BuyExplanation trade={trade} />
       <dl>
         <div>
           <dt>Entry</dt>
@@ -145,6 +154,16 @@ function TradeCard({ trade }: { trade: Trade }) {
   );
 }
 
+function BuyExplanation({ trade }: { trade: Trade }) {
+  if (!trade.entry_explanation) return null;
+  return (
+    <div className="buy-explain">
+      <span className="tag buy-tag">Buy: {trade.entry_reason}</span>
+      <p>{trade.entry_explanation}</p>
+    </div>
+  );
+}
+
 function withMarkers(result: BacktestResult): PriceRow[] {
   const buys = new Map(result.trades.map((trade) => [trade.entry_date, trade.entry_price]));
   const sells = new Map(result.trades.map((trade) => [trade.exit_date, trade.exit_price]));
@@ -157,6 +176,7 @@ function withMarkers(result: BacktestResult): PriceRow[] {
 
 function policyChips(policy: PolicySummary): string[] {
   const chips = [
+    `Candles ${policy.candle_period}`,
     `Cash ${inr(policy.starting_cash, 0)}`,
     policy.position_sizing === 'fraction' ? `${trimNum(policy.fraction * 100)}% of cash` : policy.position_sizing,
   ];
@@ -176,6 +196,9 @@ function policyChips(policy: PolicySummary): string[] {
   if (policy.trailing_stop_pct != null) chips.push(`Trail ${trimNum(policy.trailing_stop_pct)}%`);
   if (policy.atr_stop_mult != null) chips.push(`ATR stop × ${trimNum(policy.atr_stop_mult)}`);
   if (policy.trailing_atr_mult != null) chips.push(`ATR trail × ${trimNum(policy.trailing_atr_mult)}`);
+  const weights = new Map(policy.pattern_weights);
+  for (const name of policy.patterns_enabled) chips.push(`${name} w${trimNum(weights.get(name) ?? 0)}`);
+  chips.push(`Buy score ≥ ${trimNum(policy.buy_score_threshold)} (signals w${trimNum(policy.signal_weight)})`);
   chips.push(policy.fill_at === 'next_open' ? 'Fill next open' : policy.fill_at);
   return chips;
 }

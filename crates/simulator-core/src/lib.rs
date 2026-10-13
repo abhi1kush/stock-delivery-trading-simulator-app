@@ -4,10 +4,12 @@
 //! next-open fills). See `docs/CAUSALITY.md`. This crate has no CLI and no
 //! filesystem access so the WASM wrapper can call it directly.
 
+pub mod candles;
 pub mod data;
 pub mod engine;
 pub mod error;
 pub mod indicators;
+pub mod patterns;
 pub mod policy;
 pub mod report;
 
@@ -49,6 +51,12 @@ pub struct PolicySummary {
     pub buy_on_adx_confirm: bool,
     pub require_rsi_not_overbought: bool,
     pub fill_at: String,
+    pub candle_period: String,
+    pub input_rows: usize,
+    pub patterns_enabled: Vec<String>,
+    pub pattern_weights: Vec<(String, f64)>,
+    pub signal_weight: f64,
+    pub buy_score_threshold: f64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -85,14 +93,22 @@ pub struct TradeOut {
     pub pnl: f64,
     pub return_pct: f64,
     pub hold_days: i64,
+    pub entry_reason: String,
+    pub entry_explanation: String,
 }
 
 /// Run a backtest from an OHLCV CSV string and a YAML or JSON policy string.
 pub fn execute(prices_csv: &str, policy_text: &str) -> Result<RunOutput> {
     let bars = load_prices_csv(prices_csv)?;
+    let input_rows = bars.len();
     let policy = parse_policy_text(policy_text)?;
+    let period = candles::parse_period(&policy.candles.period)?;
+    let bars = candles::apply_period(bars, period)?;
     let result = run_backtest(bars, &policy);
-    Ok(assemble(&result, &policy))
+    let mut out = assemble(&result, &policy);
+    out.policy.candle_period = period.label();
+    out.policy.input_rows = input_rows;
+    Ok(out)
 }
 
 fn assemble(result: &engine::BacktestResult, policy: &Policy) -> RunOutput {
@@ -138,6 +154,8 @@ fn assemble(result: &engine::BacktestResult, policy: &Policy) -> RunOutput {
             pnl: t.pnl,
             return_pct: t.return_pct,
             hold_days: t.hold_days,
+            entry_reason: t.entry_reason.clone(),
+            entry_explanation: t.entry_explanation.clone(),
         })
         .collect();
     RunOutput {
@@ -169,5 +187,25 @@ fn summarize_policy(p: &Policy) -> PolicySummary {
         buy_on_adx_confirm: p.signals.buy_on_adx_confirm,
         require_rsi_not_overbought: p.signals.require_rsi_not_overbought,
         fill_at: p.execution.fill_at.clone(),
+        candle_period: p.candles.period.clone(),
+        input_rows: 0,
+        patterns_enabled: [
+            (p.patterns.hammer, "Hammer"),
+            (p.patterns.three_white_soldiers, "Three white soldiers"),
+            (p.patterns.bullish_engulfing, "Bullish engulfing"),
+            (p.patterns.doji, "Doji"),
+        ]
+        .iter()
+        .filter(|(on, _)| *on)
+        .map(|(_, n)| n.to_string())
+        .collect(),
+        pattern_weights: vec![
+            ("Hammer".into(), p.patterns.hammer_weight),
+            ("Three white soldiers".into(), p.patterns.three_white_soldiers_weight),
+            ("Bullish engulfing".into(), p.patterns.bullish_engulfing_weight),
+            ("Doji".into(), p.patterns.doji_weight),
+        ],
+        signal_weight: p.patterns.signal_weight,
+        buy_score_threshold: p.patterns.buy_score_threshold,
     }
 }

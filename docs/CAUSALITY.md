@@ -59,3 +59,11 @@ Causal constraints that go with this:
 - Signal day `i` → fill at `i+1` open.
 - Same-day high/low for stop/TP **after** entry, under the assumptions above.
 - Force-close at last close when no further bar exists to fill a pending exit.
+
+## Candle periods and patterns
+
+- Daily rows are grouped into candles before indicators run. A candle is
+  dated by its last session; a decision on that candle fills at the next
+  candle's open (first session of the next period).
+- Candlestick patterns on candle `i` read candles `i-6..=i` only (pattern plus
+  the 5-candle downtrend lookback). The buy score is deterministic.

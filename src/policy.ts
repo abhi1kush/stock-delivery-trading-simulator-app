@@ -11,7 +11,41 @@ export const defaultPolicyForm: PolicyForm = {
   requirePriceAboveSma: true,
   stopLossPct: '8',
   trailingStopPct: '10',
+  candlePeriod: '1D',
+  candleDays: '2',
+  hammer: false,
+  threeWhiteSoldiers: false,
+  bullishEngulfing: false,
+  doji: false,
+  hammerWeight: '0.6',
+  threeWhiteSoldiersWeight: '0.8',
+  bullishEngulfingWeight: '0.7',
+  dojiWeight: '0.3',
+  signalWeight: '1',
+  buyThreshold: '0.5',
 };
+
+export const MAX_CANDLE_DAYS = 60;
+
+/** Engine period string for the form, e.g. '1D', '5D', '1W', '1M'. */
+export function candlePeriodString(form: PolicyForm): string {
+  return form.candlePeriod === 'ND' ? `${Number(form.candleDays)}D` : form.candlePeriod;
+}
+
+/** Validate the candle period against the loaded data's granularity. */
+export function validateCandlePeriod(form: PolicyForm, medianGapDays: number | null): string | null {
+  if (form.candlePeriod === 'ND') {
+    const n = Number(form.candleDays);
+    if (!Number.isInteger(n) || n < 1 || n > MAX_CANDLE_DAYS) {
+      return `Candle length must be a whole number of days from 1 to ${MAX_CANDLE_DAYS}.`;
+    }
+  }
+  const period = candlePeriodString(form);
+  if (period !== '1D' && medianGapDays != null && medianGapDays > 4) {
+    return `The loaded prices are about ${medianGapDays} days apart, not daily. Use the 1 day candle period.`;
+  }
+  return null;
+}
 
 function finite(value: string): number {
   return Number(value);
@@ -27,7 +61,9 @@ export function validateForm(form: PolicyForm): string | null {
   const sma = finite(form.smaTrend);
   const stop = finite(form.stopLossPct);
   const trail = finite(form.trailingStopPct);
-  const numbers = [cash, pct, emaFast, emaSlow, adx, rsi, sma, stop, trail];
+  const weights = [form.hammerWeight, form.threeWhiteSoldiersWeight, form.bullishEngulfingWeight, form.dojiWeight, form.signalWeight].map(finite);
+  const threshold = finite(form.buyThreshold);
+  const numbers = [cash, pct, emaFast, emaSlow, adx, rsi, sma, stop, trail, threshold, ...weights];
 
   if (numbers.some((value) => !Number.isFinite(value))) {
     return 'Enter a number in every policy field.';
@@ -42,6 +78,8 @@ export function validateForm(form: PolicyForm): string | null {
   if (rsi <= 0 || rsi > 100) return 'RSI max must be greater than 0 and at most 100.';
   if (stop <= 0) return 'Stop loss percent must be greater than 0.';
   if (trail <= 0) return 'Trailing stop percent must be greater than 0.';
+  if (weights.some((w) => w < 0 || w > 1)) return 'Pattern and signal weights must be between 0 and 1.';
+  if (threshold <= 0 || threshold > 5) return 'Buy score threshold must be greater than 0 and at most 5.';
   return null;
 }
 
@@ -89,5 +127,19 @@ export function buildPolicyJson(form: PolicyForm): string {
       require_price_above_sma_trend: form.requirePriceAboveSma,
     },
     execution: { fill_at: 'next_open' },
+    candles: { period: candlePeriodString(form) },
+    patterns: {
+      hammer: form.hammer,
+      three_white_soldiers: form.threeWhiteSoldiers,
+      bullish_engulfing: form.bullishEngulfing,
+      doji: form.doji,
+      hammer_weight: Number(form.hammerWeight),
+      three_white_soldiers_weight: Number(form.threeWhiteSoldiersWeight),
+      bullish_engulfing_weight: Number(form.bullishEngulfingWeight),
+      doji_weight: Number(form.dojiWeight),
+      signal_weight: Number(form.signalWeight),
+      buy_score_threshold: Number(form.buyThreshold),
+      downtrend_lookback: 5,
+    },
   });
 }
