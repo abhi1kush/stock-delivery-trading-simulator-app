@@ -25,13 +25,20 @@ pub struct Candles {
     /// `1D` (default), `ND` (N = 1..=60 trading sessions), `1W`, `1M`.
     #[serde(default = "default_period")]
     pub period: String,
+    /// When true, every candle-count length in this policy (SMA/EMA/RSI/ATR/ADX
+    /// periods, downtrend lookback) is read as a number of *trading days* and
+    /// rescaled to candles: max(min, round(days / days_per_candle)), with
+    /// 1D = 1, ND = N, 1W = 5, 1M = 21; min 2 (EMA/SMA slow ≥ fast + 2).
+    /// The web form does the same scaling itself and sends candle counts.
+    #[serde(default)]
+    pub scale_lengths: bool,
 }
 fn default_period() -> String {
     "1D".into()
 }
 impl Default for Candles {
     fn default() -> Self {
-        Self { period: default_period() }
+        Self { period: default_period(), scale_lengths: false }
     }
 }
 

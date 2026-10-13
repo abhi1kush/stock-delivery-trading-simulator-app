@@ -1,4 +1,5 @@
-import type { PolicyForm } from './types';
+import type { CandleChoice, PolicyForm } from './types';
+import { DEFAULT_DAILY, scaleLengths, toDaily, tradingDaysPerCandle, type LengthKey } from './lengths';
 
 export const defaultPolicyForm: PolicyForm = {
   startingCash: '100000',
@@ -13,6 +14,11 @@ export const defaultPolicyForm: PolicyForm = {
   trailingStopPct: '10',
   candlePeriod: '1D',
   candleDays: '2',
+  rsiPeriod: '14',
+  adxPeriod: '14',
+  atrPeriod: '14',
+  downtrendLookback: '5',
+  daily: { ...DEFAULT_DAILY },
   hammer: false,
   threeWhiteSoldiers: false,
   bullishEngulfing: false,
@@ -26,6 +32,26 @@ export const defaultPolicyForm: PolicyForm = {
 };
 
 export const MAX_CANDLE_DAYS = 60;
+
+export const LENGTH_KEYS: LengthKey[] = ['emaFast', 'emaSlow', 'smaTrend', 'rsiPeriod', 'adxPeriod', 'atrPeriod', 'downtrendLookback'];
+
+export function formFactor(form: PolicyForm): number {
+  return tradingDaysPerCandle(form.candlePeriod, form.candleDays);
+}
+
+/** Change the candle period and rescale every candle-count field from its daily value. */
+export function withCandlePeriod(form: PolicyForm, choice: CandleChoice, candleDays = form.candleDays): PolicyForm {
+  const next = { ...form, candlePeriod: choice, candleDays };
+  const scaled = scaleLengths(form.daily, formFactor(next));
+  for (const key of LENGTH_KEYS) next[key] = String(scaled[key]);
+  return next;
+}
+
+/** A length edited in candles; stored back as its daily equivalent when valid. */
+export function withLength(form: PolicyForm, key: LengthKey, value: string): PolicyForm {
+  const daily = toDaily(value, formFactor(form));
+  return { ...form, [key]: value, daily: daily == null ? form.daily : { ...form.daily, [key]: daily } };
+}
 
 /** Engine period string for the form, e.g. '1D', '5D', '1W', '1M'. */
 export function candlePeriodString(form: PolicyForm): string {
@@ -63,7 +89,8 @@ export function validateForm(form: PolicyForm): string | null {
   const trail = finite(form.trailingStopPct);
   const weights = [form.hammerWeight, form.threeWhiteSoldiersWeight, form.bullishEngulfingWeight, form.dojiWeight, form.signalWeight].map(finite);
   const threshold = finite(form.buyThreshold);
-  const numbers = [cash, pct, emaFast, emaSlow, adx, rsi, sma, stop, trail, threshold, ...weights];
+  const lens = [form.rsiPeriod, form.adxPeriod, form.atrPeriod, form.downtrendLookback].map(finite);
+  const numbers = [cash, pct, emaFast, emaSlow, adx, rsi, sma, stop, trail, threshold, ...weights, ...lens];
 
   if (numbers.some((value) => !Number.isFinite(value))) {
     return 'Enter a number in every policy field.';
@@ -73,6 +100,10 @@ export function validateForm(form: PolicyForm): string | null {
   if ([emaFast, emaSlow, sma].some((value) => !Number.isInteger(value) || value < 1)) {
     return 'EMA and SMA lengths must be whole numbers of at least 1.';
   }
+  if (lens.some((value) => !Number.isInteger(value) || value < 2)) {
+    return 'RSI, ADX, ATR and downtrend lengths must be whole numbers of at least 2.';
+  }
+  if (Number(form.downtrendLookback) > 50) return 'Downtrend lookback must be at most 50 candles.';
   if (emaFast >= emaSlow) return 'Fast EMA must be shorter than slow EMA.';
   if (adx < 0) return 'ADX threshold cannot be negative.';
   if (rsi <= 0 || rsi > 100) return 'RSI max must be greater than 0 and at most 100.';
@@ -107,11 +138,11 @@ export function buildPolicyJson(form: PolicyForm): string {
       sma_trend: Number(form.smaTrend),
       ema_fast: Number(form.emaFast),
       ema_slow: Number(form.emaSlow),
-      rsi_period: 14,
+      rsi_period: Number(form.rsiPeriod),
       rsi_oversold: 30,
       rsi_overbought: Number(form.rsiMax),
-      atr_period: 14,
-      adx_period: 14,
+      atr_period: Number(form.atrPeriod),
+      adx_period: Number(form.adxPeriod),
       adx_min: Number(form.adxMin),
     },
     signals: {
@@ -139,7 +170,7 @@ export function buildPolicyJson(form: PolicyForm): string {
       doji_weight: Number(form.dojiWeight),
       signal_weight: Number(form.signalWeight),
       buy_score_threshold: Number(form.buyThreshold),
-      downtrend_lookback: 5,
+      downtrend_lookback: Number(form.downtrendLookback),
     },
   });
 }
