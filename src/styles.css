@@ -442,3 +442,10 @@ footer { margin-top: 22px; color: var(--muted); font-size: 0.85rem; }
   .charts { grid-template-columns: 1fr 1fr; }
   .card { padding: 20px; }
 }
+
+.pattern-row { display: grid; gap: 0.4rem; }
+.buy-explain { display: grid; gap: 0.3rem; margin: 0.4rem 0; font-size: 0.85rem; line-height: 1.45; }
+.buy-explain p { margin: 0; overflow-wrap: anywhere; }
+.buy-tag { justify-self: start; }
+.explain-row td { border-top: none; padding-top: 0; white-space: normal; }
+.field select { font: inherit; padding: 0.55rem 0.6rem; border-radius: 8px; border: 1px solid currentColor; background: transparent; color: inherit; }

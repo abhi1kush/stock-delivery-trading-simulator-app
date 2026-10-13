@@ -35,6 +35,25 @@ export function summarizeCsv(text: string, name: string): { meta: CsvMeta } | { 
       rows: lines.length - 1,
       start: dates[0],
       end: dates[dates.length - 1],
+      medianGapDays: medianGapDays(dates),
     },
   };
+}
+
+/** Median calendar-day gap between sorted ISO dates (null for fewer than 2). */
+export function medianGapDays(sortedDates: string[]): number | null {
+  const gaps: number[] = [];
+  for (let k = 1; k < sortedDates.length; k += 1) {
+    const a = Date.parse(`${sortedDates[k - 1]}T00:00:00Z`);
+    const b = Date.parse(`${sortedDates[k]}T00:00:00Z`);
+    if (Number.isFinite(a) && Number.isFinite(b)) gaps.push(Math.round((b - a) / 86400000));
+  }
+  if (gaps.length === 0) return null;
+  gaps.sort((x, y) => x - y);
+  return gaps[Math.floor(gaps.length / 2)];
+}
+
+/** Daily input (median gap <= 4 calendar days) can be aggregated into longer candles. */
+export function isDailyGranularity(gap: number | null): boolean {
+  return gap == null || gap <= 4;
 }

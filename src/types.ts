@@ -9,7 +9,22 @@ export type PolicyForm = {
   requirePriceAboveSma: boolean;
   stopLossPct: string;
   trailingStopPct: string;
+  /** '1D' | '1W' | '1M' | 'ND' (custom multiple of a day, see candleDays). */
+  candlePeriod: CandleChoice;
+  candleDays: string;
+  hammer: boolean;
+  threeWhiteSoldiers: boolean;
+  bullishEngulfing: boolean;
+  doji: boolean;
+  hammerWeight: string;
+  threeWhiteSoldiersWeight: string;
+  bullishEngulfingWeight: string;
+  dojiWeight: string;
+  signalWeight: string;
+  buyThreshold: string;
 };
+
+export type CandleChoice = '1D' | '1W' | '1M' | 'ND';
 
 export type Stats = {
   starting_capital: number;
@@ -46,6 +61,12 @@ export type PolicySummary = {
   buy_on_adx_confirm: boolean;
   require_rsi_not_overbought: boolean;
   fill_at: string;
+  candle_period: string;
+  input_rows: number;
+  patterns_enabled: string[];
+  pattern_weights: [string, number][];
+  signal_weight: number;
+  buy_score_threshold: number;
 };
 
 export type EquityPoint = {
@@ -84,6 +105,8 @@ export type Trade = {
   pnl: number;
   return_pct: number;
   hold_days: number;
+  entry_reason: string;
+  entry_explanation: string;
 };
 
 export type BacktestResult = {
@@ -99,4 +122,6 @@ export type CsvMeta = {
   rows: number;
   start: string;
   end: string;
+  /** Median calendar-day gap between rows (1 for daily, ~7 weekly). */
+  medianGapDays: number | null;
 };

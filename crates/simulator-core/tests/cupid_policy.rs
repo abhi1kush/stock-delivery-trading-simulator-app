@@ -220,3 +220,35 @@ fn rejects_shorting_and_bad_ohlc() {
     let err = load_prices_csv(bad).unwrap_err();
     assert!(err.to_string().contains("high"));
 }
+
+#[test]
+fn cupid_default_policy_explains_signal_buys() {
+    let out = execute(CSV, YAML).expect("backtest");
+    assert_eq!(out.policy.candle_period, "1D");
+    for t in &out.trades {
+        assert_eq!(t.entry_reason, "Signals");
+        assert!(t.entry_explanation.contains("Buy score 1.00 ≥ threshold 0.50"), "{}", t.entry_explanation);
+        assert!(t.entry_explanation.contains("Filled at the next candle's open"));
+    }
+}
+
+#[test]
+fn cupid_weekly_candles_with_patterns() {
+    let yaml = format!(
+        "{YAML}\ncandles:\n  period: 1W\npatterns:\n  hammer: true\n  three_white_soldiers: true\n  bullish_engulfing: true\n  doji: true\n"
+    );
+    let out = execute(CSV, &yaml).expect("backtest");
+    assert_eq!(out.policy.candle_period, "1W");
+    assert_eq!(out.policy.input_rows, 246);
+    assert!(out.stats.num_bars >= 52 && out.stats.num_bars <= 54, "{}", out.stats.num_bars);
+    for t in &out.trades {
+        assert!(t.entry_explanation.starts_with("Buy score"));
+    }
+}
+
+#[test]
+fn rejects_bad_candle_period_and_weights() {
+    assert!(execute(CSV, &format!("{YAML}\ncandles:\n  period: 2W\n")).is_err());
+    assert!(execute(CSV, &format!("{YAML}\npatterns:\n  hammer_weight: 1.5\n")).is_err());
+    assert!(execute(CSV, &format!("{YAML}\npatterns:\n  buy_score_threshold: 0\n")).is_err());
+}
