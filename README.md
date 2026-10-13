@@ -45,7 +45,7 @@ If the first deployment cannot publish, open the repository **Settings → Pages
 
 ## Using it
 
-1. Load the bundled CUPID sample or upload a daily OHLCV CSV with columns `date,open,high,low,close,volume` (`YYYY-MM-DD`).
+1. Pick a bundled sample (CUPID by default, or one of five real NSE stocks) or upload a daily OHLCV CSV with columns `date,open,high,low,close,volume` (`YYYY-MM-DD`).
 2. Pick a candle period and the patterns you want, adjust the policy form, or paste YAML. A non-empty YAML box replaces the form. The form sends JSON; the engine accepts JSON or YAML.
 3. Run. The report shows return, drawdown, win rate, the equity curve, price with buy/sell fills, and the trade list.
 
@@ -143,6 +143,22 @@ patterns:
 ```bash
 npm test        # vitest (form, period validation) + cargo test --workspace
 ```
+
+## Bundled sample data
+
+The picker on the Prices card offers CUPID (the original default) plus five real NSE stocks, each chosen for a distinct chart shape and checked numerically (closes, daily log returns, annualised volatility = stdev × √252):
+
+| File | Stock | Window | Shape | Backing numbers | Default policy |
+| --- | --- | --- | --- | --- | --- |
+| `PAYTM.csv` | One 97 Communications (PAYTM) | 2021-11-18 – 2022-11-30 (257 rows) | One-year bear run | ₹1,560.80 → ₹481.70 (−69.1%), max drawdown 75.5%, vol 58% | −11.95%, 2 trades |
+| `SUZLON.csv` | Suzlon Energy (SUZLON) | 2021-01-01 – 2022-12-30 (496) | Choppy, inconsistent swings | vol 61%, drawdown 52.3%, net move / total path 0.041 | +6.41%, 4 trades |
+| `TRENT.csv` | Trent (TRENT) | 2023-01-02 – 2024-06-28 (365) | Strong steady bull run | ₹1,342 → ₹5,480 (+308%), max drawdown 12.7% | +42.05%, 3 trades |
+| `ADANIENT.csv` | Adani Enterprises (ADANIENT) | 2022-10-03 – 2024-01-31 (328) | V-shaped crash and recovery | −71.3% peak (2022-12-20) to low (2023-02-27), +163% from the low; ends −0.5% vs start | −1.26%, 1 trade |
+| `HINDUNILVR.csv` | Hindustan Unilever (HINDUNILVR) | 2022-06-01 – 2024-06-28 (512) | Range-bound blue chip | +7.1% over two years, closes ₹2,110–₹2,757, vol 19% | −14.60%, 3 trades |
+
+Source: Yahoo Finance chart API (`query1.finance.yahoo.com/v8/finance/chart/<SYM>.NS`, `interval=1d`), fetched 13 Oct 2026. Prices are split/bonus-adjusted by Yahoo and not dividend-adjusted. Rows with null prices were dropped, prices rounded to 2 decimals, and high/low widened to include open/close where rounding broke the OHLC invariant. Suzlon has 16 sessions in early 2021 with open = high = low = close (circuit-locked days); they are real. Candidates were picked from well-known moves (Paytm post-IPO slide, Adani after the Hindenburg report, Trent's 2023 rally) and confirmed against the data above.
+
+The sample data is for research and education only. Yahoo Finance and NSE terms of use apply; do not redistribute it commercially.
 
 ## Layout
 

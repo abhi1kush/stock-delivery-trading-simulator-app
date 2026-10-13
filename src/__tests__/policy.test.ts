@@ -58,3 +58,20 @@ describe('pattern weights and score', () => {
     });
   });
 });
+
+import { readFileSync } from 'node:fs';
+import { SAMPLES } from '../samples';
+
+describe('bundled samples', () => {
+  it('every sample CSV exists, has the right columns and is daily', () => {
+    for (const s of SAMPLES) {
+      const text = readFileSync(new URL(`../../public/data/${s.file}`, import.meta.url), 'utf8');
+      const res = summarizeCsv(text, s.file);
+      expect('meta' in res, s.file).toBe(true);
+      if ('meta' in res) {
+        expect(res.meta.rows).toBeGreaterThan(200);
+        expect(isDailyGranularity(res.meta.medianGapDays)).toBe(true);
+      }
+    }
+  });
+});

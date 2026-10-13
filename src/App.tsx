@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { SetupView } from './components/SetupView';
 import { ReportView } from './components/ReportView';
 import { summarizeCsv } from './csv';
+import { SAMPLES } from './samples';
 import { buildPolicyJson, defaultPolicyForm, validateCandlePeriod, validateForm } from './policy';
 import type { BacktestResult, CsvMeta, PolicyForm } from './types';
 import { errorText, preloadEngine, runBacktest } from './wasm/engine';
@@ -18,6 +19,7 @@ export function App() {
   const [csvText, setCsvText] = useState<string | null>(null);
   const [csvMeta, setCsvMeta] = useState<CsvMeta | null>(null);
   const [loadingSample, setLoadingSample] = useState(false);
+  const [sampleFile, setSampleFile] = useState(SAMPLES[0].file);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BacktestResult | null>(null);
@@ -64,9 +66,10 @@ export function App() {
     setLoadingSample(true);
     setError(null);
     try {
-      const response = await fetch(`${import.meta.env.BASE_URL}data/CUPID.csv`);
-      if (!response.ok) throw new Error(`Could not load the CUPID sample (${response.status}).`);
-      acceptCsv(await response.text(), 'CUPID.csv');
+      const sample = SAMPLES.find((s) => s.file === sampleFile) ?? SAMPLES[0];
+      const response = await fetch(`${import.meta.env.BASE_URL}data/${sample.file}`);
+      if (!response.ok) throw new Error(`Could not load the ${sample.symbol} sample (${response.status}).`);
+      acceptCsv(await response.text(), `${sample.symbol}.csv · ${sample.name}`);
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -94,7 +97,7 @@ export function App() {
 
   async function run() {
     if (!csvText || !csvMeta) {
-      setError('Load a price CSV or the CUPID sample first.');
+      setError('Load a price CSV or a bundled sample first.');
       return;
     }
     const yamlOn = yaml.trim().length > 0;
@@ -174,6 +177,8 @@ export function App() {
             csvMeta={csvMeta}
             loadingSample={loadingSample}
             onLoadSample={() => void loadSample()}
+            sampleFile={sampleFile}
+            onSampleFile={setSampleFile}
             onUpload={upload}
             onLoadExampleYaml={() => void loadExampleYaml()}
             onSubmit={() => void run()}

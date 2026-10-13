@@ -1,6 +1,7 @@
 import type { CandleChoice, PolicyForm, CsvMeta } from '../types';
 import { isDailyGranularity } from '../csv';
 import { MAX_CANDLE_DAYS } from '../policy';
+import { SAMPLES, SAMPLE_SOURCE_NOTE } from '../samples';
 import { longDate } from '../format';
 
 type EngineState = 'loading' | 'ready' | 'error';
@@ -13,6 +14,8 @@ type Props = {
   csvMeta: CsvMeta | null;
   loadingSample: boolean;
   onLoadSample: () => void;
+  sampleFile: string;
+  onSampleFile: (file: string) => void;
   onUpload: (file: File) => void;
   onLoadExampleYaml: () => void;
   onSubmit: () => void;
@@ -31,6 +34,8 @@ export function SetupView({
   csvMeta,
   loadingSample,
   onLoadSample,
+  sampleFile,
+  onSampleFile,
   onUpload,
   onLoadExampleYaml,
   onSubmit,
@@ -59,11 +64,22 @@ export function SetupView({
       <section className="card">
         <div className="card-head">
           <h2>Prices</h2>
-          <p>Daily bars with the same columns as the bundled CUPID file.</p>
+          <p>Pick a bundled real-price sample or upload daily bars with the same columns.</p>
         </div>
+        <label className="field" htmlFor="sample-picker">
+          <span>Sample data</span>
+          <select id="sample-picker" value={sampleFile} onChange={(event) => onSampleFile(event.target.value)}>
+            {SAMPLES.map((s) => (
+              <option key={s.file} value={s.file}>
+                {s.name} ({s.symbol}) · {s.range} · {s.category}
+              </option>
+            ))}
+          </select>
+          <small>{SAMPLES.find((s) => s.file === sampleFile)?.description}</small>
+        </label>
         <div className="actions">
           <button type="button" className="btn primary" onClick={onLoadSample} disabled={loadingSample}>
-            {loadingSample ? 'Loading sample…' : 'Load CUPID sample'}
+            {loadingSample ? 'Loading sample…' : `Load ${SAMPLES.find((s) => s.file === sampleFile)?.symbol ?? ''} sample`}
           </button>
           <label className="btn ghost">
             Upload CSV
@@ -79,6 +95,7 @@ export function SetupView({
           </label>
         </div>
         <p className="hint">Columns: date, open, high, low, close, volume. Dates as YYYY-MM-DD.</p>
+        <p className="hint source-note">{SAMPLE_SOURCE_NOTE}</p>
         <div className={csvMeta ? 'file-status ready' : 'file-status'}>
           {csvMeta ? (
             <>
