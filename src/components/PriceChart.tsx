@@ -1,6 +1,19 @@
 import { CartesianGrid, ComposedChart, Line, ResponsiveContainer, Scatter, Tooltip, XAxis, YAxis } from 'recharts';
+import { useEffect, useState } from 'react';
 import { inr, longDate, shortDate } from '../format';
-import type { PriceRow } from '../types';
+import type { BacktestResult, PriceRow } from '../types';
+import { CandleView } from './CandleView';
+
+export type ChartMode = 'line' | 'candles';
+export const CHART_MODE_KEY = 'priceChartMode';
+
+function savedMode(): ChartMode {
+  try {
+    return localStorage.getItem(CHART_MODE_KEY) === 'candles' ? 'candles' : 'line';
+  } catch {
+    return 'line';
+  }
+}
 
 type TipProps = {
   active?: boolean;
@@ -14,13 +27,39 @@ type DotProps = {
   payload?: PriceRow;
 };
 
-export function PriceChart({ data }: { data: PriceRow[] }) {
+export function PriceChart({ data, result }: { data: PriceRow[]; result: BacktestResult }) {
+  const [mode, setMode] = useState<ChartMode>(savedMode);
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHART_MODE_KEY, mode);
+    } catch {
+      /* storage unavailable */
+    }
+  }, [mode]);
+
   return (
     <section className="card chart-card" aria-label="Price with trade markers">
-      <div className="card-head">
-        <h2>Price and trades</h2>
-        <p>Green dots are buy fills. Copper dots are sell fills. Averages are the causal values at that close.</p>
+      <div className="card-head chart-head">
+        <div>
+          <h2>Price and trades</h2>
+          <p>
+            {mode === 'line'
+              ? 'Green dots are buy fills. Copper dots are sell fills. Averages are the causal values at that close.'
+              : 'Candles of the selected period with the same averages and fills.'}
+          </p>
+        </div>
+        <div className="seg" role="group" aria-label="Chart type">
+          {(['line', 'candles'] as const).map((m) => (
+            <button key={m} type="button" className={mode === m ? 'seg-btn active' : 'seg-btn'} aria-pressed={mode === m} onClick={() => setMode(m)}>
+              {m === 'line' ? 'Line' : 'Candles'}
+            </button>
+          ))}
+        </div>
       </div>
+      {mode === 'candles' ? (
+        <CandleView key={`${result.stats.first_date}-${result.stats.num_bars}-${result.policy.candle_period}`} result={result} />
+      ) : (
+      <>
       <div className="chart-body">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -69,6 +108,8 @@ export function PriceChart({ data }: { data: PriceRow[] }) {
         <li><i className="swatch buy" /> Buy</li>
         <li><i className="swatch sell" /> Sell</li>
       </ul>
+      </>
+      )}
     </section>
   );
 }

@@ -47,6 +47,16 @@ pub enum Pattern {
 }
 
 impl Pattern {
+    /// Short chart label.
+    pub fn code(&self) -> &'static str {
+        match self {
+            Pattern::Hammer => "H",
+            Pattern::ThreeWhiteSoldiers => "3WS",
+            Pattern::BullishEngulfing => "BE",
+            Pattern::Doji => "D",
+        }
+    }
+
     pub fn name(&self) -> &'static str {
         match self {
             Pattern::Hammer => "Hammer",
