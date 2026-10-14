@@ -47,7 +47,7 @@ export function ReportView({ result, sourceName, onBack }: Props) {
 
       <div className="charts">
         <EquityChart data={result.equity} />
-        <PriceChart data={prices} />
+        <PriceChart data={prices} result={result} />
       </div>
 
       <section className="card">

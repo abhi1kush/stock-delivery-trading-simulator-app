@@ -95,6 +95,8 @@ export type PriceOut = {
   sma_trend: number | null;
   ema_fast: number | null;
   ema_slow: number | null;
+  /** Enabled patterns detected on this candle: H, 3WS, BE, D. */
+  patterns: string[];
 };
 
 export type PriceRow = PriceOut & {

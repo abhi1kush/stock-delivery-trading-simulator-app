@@ -556,3 +556,40 @@ input:disabled { background: #f3efe7; cursor: not-allowed; }
 }
 .field { align-content: start; }
 .group .fields { align-items: start; }
+
+/* ---- Candlestick chart ---- */
+.candle-view { min-width: 0; }
+.candle-body { height: 340px; width: 100%; touch-action: pan-y; }
+.range-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.chip-btn {
+  appearance: none;
+  min-height: 40px;
+  min-width: 56px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font: 600 0.85rem var(--sans);
+  color: var(--ink);
+  cursor: pointer;
+}
+.chip-btn.active { background: var(--ink); color: #f6f1e7; border-color: var(--ink); }
+.swatch.candle-up { background: #fffdf8; border: 1.5px solid #1f8a68; border-radius: 2px; }
+.swatch.candle-down { background: #b23b3b; border-radius: 2px; }
+.swatch.vol { background: #cdbfa8; border-radius: 2px; }
+.arrow-buy { color: #0e6b52; }
+.arrow-sell { color: #a34720; }
+.pattern-key { color: #6b4fa3; font-size: 0.75rem; }
+.tip-buy { color: #8fe0c2; }
+.tip-sell { color: #f2b08f; }
+.recharts-brush-traveller { cursor: ew-resize; }
+@media (min-width: 720px) { .candle-body { height: 420px; } }
+.chart-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.chart-head > div:first-child { flex: 1 1 200px; min-width: 0; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: #f7f3eb; flex: 0 0 auto; }
+.seg-btn {
+  appearance: none; border: 0; background: transparent; border-radius: 999px;
+  min-height: 40px; min-width: 76px; padding: 6px 14px; font: 600 0.88rem var(--sans); color: var(--muted); cursor: pointer;
+}
+.seg-btn.active { background: var(--ink); color: #f6f1e7; }
+.candle-note { margin: 0 0 8px; }

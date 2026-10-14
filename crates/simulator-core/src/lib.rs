@@ -79,6 +79,8 @@ pub struct PriceOut {
     pub sma_trend: Option<f64>,
     pub ema_fast: Option<f64>,
     pub ema_slow: Option<f64>,
+    /// Enabled candlestick patterns detected on this candle: H, 3WS, BE, D.
+    pub patterns: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -131,7 +133,8 @@ fn assemble(result: &engine::BacktestResult, policy: &Policy) -> RunOutput {
         .bars
         .iter()
         .zip(result.indicators.iter())
-        .map(|(bar, ind)| PriceOut {
+        .enumerate()
+        .map(|(i, (bar, ind))| PriceOut {
             date: bar.date.to_string(),
             open: bar.open,
             high: bar.high,
@@ -141,6 +144,10 @@ fn assemble(result: &engine::BacktestResult, policy: &Policy) -> RunOutput {
             sma_trend: ind.sma_trend,
             ema_fast: ind.ema_fast,
             ema_slow: ind.ema_slow,
+            patterns: engine::pattern_hits(&result.bars, i, policy)
+                .iter()
+                .map(|(h, _)| h.pattern.code().to_string())
+                .collect(),
         })
         .collect();
     let trades = result
