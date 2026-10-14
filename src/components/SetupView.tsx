@@ -1,5 +1,6 @@
 import type { CandleChoice, PolicyForm, CsvMeta } from '../types';
 import { isDailyGranularity } from '../csv';
+import { InfoTip } from './InfoTip';
 import { MAX_CANDLE_DAYS, formFactor, withCandlePeriod, withLength } from '../policy';
 import { scaleLengths, warmupWarning, type LengthKey } from '../lengths';
 import { SAMPLES, SAMPLE_SOURCE_NOTE } from '../samples';
@@ -86,7 +87,10 @@ export function SetupView({
           <p>Pick a bundled real-price sample or upload daily bars with the same columns.</p>
         </div>
         <label className="field" htmlFor="sample-picker">
-          <span>Sample data</span>
+          <span className="label-row">
+            <span>Sample data</span>
+            <InfoTip id="sample-picker" label="Sample data" />
+          </span>
           <select id="sample-picker" value={sampleFile} onChange={(event) => onSampleFile(event.target.value)}>
             {SAMPLES.map((s) => (
               <option key={s.file} value={s.file}>
@@ -139,7 +143,10 @@ export function SetupView({
           <legend>Candles</legend>
           <div className="fields">
             <label className="field" htmlFor="candle-period">
-              <span>Candle period</span>
+              <span className="label-row">
+                <span>Candle period</span>
+                <InfoTip id="candle-period" label="Candle period" />
+              </span>
               <select
                 id="candle-period"
                 value={form.candlePeriod}
@@ -236,6 +243,7 @@ export function SetupView({
                 onChange={(event) => set('requirePriceAboveSma', event.target.checked)}
               />
               <span>Only buy when close is above the SMA</span>
+              <InfoTip id="sma-filter" label="SMA trend filter" />
             </label>
           </div>
         </fieldset>
@@ -260,6 +268,7 @@ export function SetupView({
                     onChange={(event) => set(flag, event.target.checked)}
                   />
                   <span>{label}</span>
+                  <InfoTip id={`pat-${flag}`} label={label} />
                 </label>
                 <Field
                   id={`w-${flag}`}
@@ -337,8 +346,8 @@ export function SetupView({
               Clear
             </button>
           </div>
-          <label className="yaml-label" htmlFor="policy-yaml">
-            Policy YAML
+          <label className="yaml-label label-row" htmlFor="policy-yaml">
+            Policy YAML <InfoTip id="policy-yaml" label="Policy YAML" />
           </label>
           <textarea
             id="policy-yaml"
@@ -400,7 +409,10 @@ function Field({
 }) {
   return (
     <label className="field" htmlFor={id}>
-      <span>{label}</span>
+      <span className="label-row">
+        <span>{label}</span>
+        <InfoTip id={id} label={label} />
+      </span>
       <input
         id={id}
         inputMode="decimal"

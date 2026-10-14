@@ -65,6 +65,10 @@ The form matches [`policy/example_policy.yaml`](policy/example_policy.yaml):
 
 On the bundled CUPID sample (246 sessions, 2025-10-06 through 2026-10-05) that policy returns **+40.81%** in **3 trades** (ending equity ₹1,40,814.80, max drawdown 10.87%). `cargo test -p simulator-core` locks those figures to the upstream engine.
 
+### Parameter help
+
+Every policy control has an (i) button. Hover or keyboard focus opens it on desktop; on touch, tap toggles it, and Esc or a tap outside closes it. The text lives in one file, [`src/help.ts`](src/help.ts), written from the engine code. A test checks that every form control has an entry.
+
 ### Candle period
 
 The input CSV is daily. The **Candle period** control groups rows into longer candles before indicators, signals and patterns run (open = first, high = max, low = min, close = last, volume = sum):
