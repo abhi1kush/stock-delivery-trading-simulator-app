@@ -77,6 +77,11 @@ The Entry section is split into four groups: **EMA cross** (fast, slow), **ADX c
 
 Buy explanations list switched-off checks, e.g. "Off: ADX confirm, RSI cap."
 
+### Candlestick view
+
+The "Price and trades" chart has a **Line | Candles** switch (Line is the default; the choice is saved in the browser). Candles uses the engine's candles for the selected period (1D, N days, 1W, 1M), the same rows that drive signals: up candles hollow green, down candles red, wicks for high/low and a faint volume pane. It overlays EMA fast/slow, the SMA trend line when that filter is on, ▲ buy and ▼ sell arrows on the fill candles from the trade table, and pattern labels (H, 3WS, BE, D) when patterns are enabled. "Last 60 / 120 / 250 / All" buttons and the drag handles under the chart zoom and pan, and the price axis refits to the visible candles. It uses Recharts, which the app already had, so there is no new dependency.
+
+### Parameter help
 
 Every policy control has an (i) button. Hover or keyboard focus opens it on desktop; on touch, tap toggles it, and Esc or a tap outside closes it. The text lives in one file, [`src/help.ts`](src/help.ts), written from the engine code. A test checks that every form control has an entry.
 
