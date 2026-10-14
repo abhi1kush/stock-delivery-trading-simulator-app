@@ -7,6 +7,8 @@ export type PolicyForm = {
   rsiMax: string;
   smaTrend: string;
   requirePriceAboveSma: boolean;
+  adxEnabled: boolean;
+  rsiEnabled: boolean;
   stopLossPct: string;
   trailingStopPct: string;
   /** '1D' | '1W' | '1M' | 'ND' (custom multiple of a day, see candleDays). */

@@ -82,3 +82,17 @@ describe('policy parameter tooltips', () => {
     expect(tip.className).not.toContain('open');
   });
 });
+
+describe('indicator groups', () => {
+  it('disabled groups keep values but make inputs non-editable', () => {
+    renderSetup({ ...defaultPolicyForm, adxEnabled: false, rsiEnabled: true, requirePriceAboveSma: false });
+    const adxLen = document.getElementById('adx-period') as HTMLInputElement;
+    const adxMin = document.getElementById('adx-min') as HTMLInputElement;
+    expect(adxLen.disabled && adxMin.disabled).toBe(true);
+    expect(adxMin.value).toBe('20');
+    expect((document.getElementById('rsi-max') as HTMLInputElement).disabled).toBe(false);
+    expect((document.getElementById('sma-trend') as HTMLInputElement).disabled).toBe(true);
+    expect((document.getElementById('adx-enabled') as HTMLInputElement).disabled).toBe(false);
+    expect(screen.getByRole('button', { name: 'About ADX threshold' })).toBeTruthy();
+  });
+});

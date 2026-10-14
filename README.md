@@ -65,7 +65,18 @@ The form matches [`policy/example_policy.yaml`](policy/example_policy.yaml):
 
 On the bundled CUPID sample (246 sessions, 2025-10-06 through 2026-10-05) that policy returns **+40.81%** in **3 trades** (ending equity ₹1,40,814.80, max drawdown 10.87%). `cargo test -p simulator-core` locks those figures to the upstream engine.
 
-### Parameter help
+### Indicator groups
+
+The Entry section is split into four groups: **EMA cross** (fast, slow), **ADX confirm** (on/off, length, threshold), **RSI cap** (on/off, length, max) and **SMA trend filter** (on/off, length). Turning a group off greys out its inputs and keeps their values. The switches map to the engine's existing flags, which are also the YAML keys:
+
+| Group | YAML flag (default `true`) | What off means in the engine |
+| --- | --- | --- |
+| ADX confirm | `signals.buy_on_adx_confirm` | ADX is an extra buy trigger OR'd with the EMA cross; off removes that trigger |
+| RSI cap | `signals.require_rsi_not_overbought` | the "RSI < max" buy filter is skipped |
+| SMA trend | `signals.require_price_above_sma_trend` | the "close > SMA" buy filter is skipped |
+
+Buy explanations list switched-off checks, e.g. "Off: ADX confirm, RSI cap."
+
 
 Every policy control has an (i) button. Hover or keyboard focus opens it on desktop; on touch, tap toggles it, and Esc or a tap outside closes it. The text lives in one file, [`src/help.ts`](src/help.ts), written from the engine code. A test checks that every form control has an entry.
 

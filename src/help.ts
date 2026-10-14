@@ -19,6 +19,10 @@ export const HELP: Record<string, string> = {
     `Fast exponential moving average. A buy signal fires when it crosses above the slow EMA on a candle close. Typical 5–20 days; ${SCALED}`,
   'ema-slow':
     `Slow exponential moving average; must be longer than the fast one (at least 2 more). Larger gaps give fewer, later signals. Typical 20–50 days; ${SCALED}`,
+  'adx-enabled':
+    'ADX confirm is an extra buy trigger (it is OR’d with the EMA cross, not required alongside it). When on, a buy fires when ADX crosses up through the threshold while the fast EMA is above the slow one; when off, only the EMA cross and patterns can trigger buys.',
+  'rsi-enabled':
+    'RSI cap is a buy filter. When on, buys are skipped while RSI is at or above RSI max; when off, overbought candles can still buy (useful on weekly candles in strong uptrends).',
   'adx-min':
     'ADX trend-strength level. A second buy signal fires when ADX crosses up through this value while the fast EMA is above the slow EMA. Typical 20–25; 0 disables it in practice.',
   'rsi-max':
@@ -30,7 +34,7 @@ export const HELP: Record<string, string> = {
   'adx-period':
     `Number of candles in the ADX trend-strength calculation; ADX needs about twice this to warm up. Typical 14 days; ${SCALED}`,
   'sma-filter':
-    'When on, a buy is only allowed if the signal candle closes above the SMA trend line, so you only buy in long-term uptrends. Turn off to also buy below it, e.g. reversal patterns after a fall.',
+    'SMA trend filter. When on, a buy is only allowed if the signal candle closes above the SMA trend line, so you only buy in long-term uptrends; turn it off to also buy below it, e.g. reversal patterns after a fall.',
   'pat-hammer':
     'Counts a hammer as buy evidence: small body near the top, lower shadow at least 2× the body, tiny upper shadow, after a decline over the downtrend lookback.',
   'w-hammer':

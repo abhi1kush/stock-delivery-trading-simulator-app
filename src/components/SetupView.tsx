@@ -52,7 +52,22 @@ export function SetupView({
   const factor = formFactor(form);
   const warmup = csvMeta ? warmupWarning(csvMeta.rows, factor, scaleLengths(form.daily, factor)) : null;
 
-  function lenField(id: string, k: LengthKey, label: string) {
+  function groupToggle(id: string, titleId: string, title: string, checked: boolean, onToggle: (v: boolean) => void) {
+    return (
+      <div className="group-head">
+        <label className="check group-check" htmlFor={id}>
+          <input id={id} type="checkbox" checked={checked} onChange={(event) => onToggle(event.target.checked)} />
+          <span id={titleId} className="group-title">
+            {title}
+          </span>
+        </label>
+        <InfoTip id={id} label={title} />
+        <span className="group-state">{checked ? 'On' : 'Off'}</span>
+      </div>
+    );
+  }
+
+  function lenField(id: string, k: LengthKey, label: string, disabled = false) {
     return (
       <Field
         id={id}
@@ -62,6 +77,7 @@ export function SetupView({
         step="1"
         hint={factor === 1 ? undefined : `≈${form.daily[k]} trading days`}
         key={id}
+        disabled={disabled}
         onChange={(value) => onChange(withLength(form, k, value))}
       />
     );
@@ -208,43 +224,59 @@ export function SetupView({
           </div>
         </fieldset>
 
-        <fieldset>
-          <legend>Entry</legend>
-          <div className="fields">
-            {lenField('ema-fast', 'emaFast', 'EMA fast')}
-            {lenField('ema-slow', 'emaSlow', 'EMA slow')}
-            <Field
-              id="adx-min"
-              label="ADX threshold"
-              value={form.adxMin}
-              min="0"
-              step="1"
-              hint="Buy when ADX crosses up through this level while the fast average is above the slow one."
-              onChange={(value) => set('adxMin', value)}
-            />
-            <Field
-              id="rsi-max"
-              label="RSI max"
-              value={form.rsiMax}
-              min="1"
-              max="100"
-              step="1"
-              hint="Skip buys when RSI is at or above this."
-              onChange={(value) => set('rsiMax', value)}
-            />
-            {lenField('sma-trend', 'smaTrend', 'SMA trend length')}
-            {lenField('rsi-period', 'rsiPeriod', 'RSI length')}
-            {lenField('adx-period', 'adxPeriod', 'ADX length')}
-            <label className="check" htmlFor="sma-filter">
-              <input
-                id="sma-filter"
-                type="checkbox"
-                checked={form.requirePriceAboveSma}
-                onChange={(event) => set('requirePriceAboveSma', event.target.checked)}
-              />
-              <span>Only buy when close is above the SMA</span>
-              <InfoTip id="sma-filter" label="SMA trend filter" />
-            </label>
+        <fieldset className="groups">
+          <legend>Entry indicators</legend>
+          <div className="group-grid">
+            <section className="group" aria-labelledby="grp-ema">
+              <h3 id="grp-ema" className="group-title">EMA cross</h3>
+              <div className="fields">
+                {lenField('ema-fast', 'emaFast', 'EMA fast')}
+                {lenField('ema-slow', 'emaSlow', 'EMA slow')}
+              </div>
+            </section>
+
+            <section className={form.adxEnabled ? 'group' : 'group off'} aria-labelledby="grp-adx">
+              {groupToggle('adx-enabled', 'grp-adx', 'ADX confirm', form.adxEnabled, (v) => set('adxEnabled', v))}
+              <div className="fields">
+                {lenField('adx-period', 'adxPeriod', 'ADX length', !form.adxEnabled)}
+                <Field
+                  id="adx-min"
+                  label="ADX threshold"
+                  value={form.adxMin}
+                  min="0"
+                  step="1"
+                  disabled={!form.adxEnabled}
+                  hint="Buy when ADX crosses up through this level while the fast EMA is above the slow one."
+                  onChange={(value) => set('adxMin', value)}
+                />
+              </div>
+            </section>
+
+            <section className={form.rsiEnabled ? 'group' : 'group off'} aria-labelledby="grp-rsi">
+              {groupToggle('rsi-enabled', 'grp-rsi', 'RSI cap', form.rsiEnabled, (v) => set('rsiEnabled', v))}
+              <div className="fields">
+                {lenField('rsi-period', 'rsiPeriod', 'RSI length', !form.rsiEnabled)}
+                <Field
+                  id="rsi-max"
+                  label="RSI max"
+                  value={form.rsiMax}
+                  min="1"
+                  max="100"
+                  step="1"
+                  disabled={!form.rsiEnabled}
+                  hint="Skip buys when RSI is at or above this."
+                  onChange={(value) => set('rsiMax', value)}
+                />
+              </div>
+            </section>
+
+            <section className={form.requirePriceAboveSma ? 'group' : 'group off'} aria-labelledby="grp-sma">
+              {groupToggle('sma-filter', 'grp-sma', 'SMA trend filter', form.requirePriceAboveSma, (v) => set('requirePriceAboveSma', v))}
+              <div className="fields">
+                {lenField('sma-trend', 'smaTrend', 'SMA trend length', !form.requirePriceAboveSma)}
+              </div>
+              <p className="hint">Only buy when the close is above this SMA.</p>
+            </section>
           </div>
         </fieldset>
 
@@ -397,7 +429,9 @@ function Field({
   min,
   max,
   step,
+  disabled,
 }: {
+  disabled?: boolean;
   id: string;
   label: string;
   value: string;
@@ -421,6 +455,7 @@ function Field({
         min={min}
         max={max}
         step={step}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
       />
       {hint ? <small>{hint}</small> : null}
