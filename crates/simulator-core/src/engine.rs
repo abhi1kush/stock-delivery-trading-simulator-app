@@ -299,6 +299,19 @@ pub fn buy_decision(bars: &[Bar], i: usize, row: &IndicatorRow, policy: &Policy)
     if !filters.is_empty() {
         text.push_str(&format!("Filters passed: {}. ", filters.join("; ")));
     }
+    let mut off = Vec::new();
+    if !policy.signals.buy_on_adx_confirm {
+        off.push("ADX confirm");
+    }
+    if !policy.signals.require_rsi_not_overbought || policy.indicators.rsi_period.is_none() {
+        off.push("RSI cap");
+    }
+    if !policy.signals.require_price_above_sma_trend {
+        off.push("SMA trend filter");
+    }
+    if !off.is_empty() {
+        text.push_str(&format!("Off: {}. ", off.join(", ")));
+    }
     Some((sc.short_reason(), text))
 }
 

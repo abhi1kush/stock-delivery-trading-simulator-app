@@ -75,3 +75,15 @@ describe('bundled samples', () => {
     }
   });
 });
+
+describe('group toggles map to engine flags', () => {
+  it('ADX and RSI flags', () => {
+    const on = JSON.parse(buildPolicyJson(defaultPolicyForm));
+    expect(on.signals.buy_on_adx_confirm).toBe(true);
+    expect(on.signals.require_rsi_not_overbought).toBe(true);
+    const off = JSON.parse(buildPolicyJson({ ...defaultPolicyForm, adxEnabled: false, rsiEnabled: false }));
+    expect(off.signals.buy_on_adx_confirm).toBe(false);
+    expect(off.signals.require_rsi_not_overbought).toBe(false);
+    expect(off.indicators.adx_min).toBe(20);
+  });
+});
